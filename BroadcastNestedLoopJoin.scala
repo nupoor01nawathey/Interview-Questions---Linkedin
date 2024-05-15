@@ -10,6 +10,9 @@ import org.apache.spark.sql.functions.{broadcast, coalesce, lit}
   In join condition when added && with equality option there may be a mismatch of data types,
     to avoid that inferSchema is not enabled nor any custom schema enabled
   There will still be 1 BroadcastNestedLoopJoin BuildRight, Cross as we are performing cross JOIN
+
+
+  Cartesian Product Join (a.k.a. Shuffle-and-Replication Nested Loop) join works very similar to a Broadcast Nested Loop join except the dataset is not broadcasted. 
  */
 object BroadcastNestedLoopJoin extends App {
 
