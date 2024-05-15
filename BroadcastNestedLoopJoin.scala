@@ -1,7 +1,7 @@
 package main
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions.{broadcast, lit}
+import org.apache.spark.sql.functions.{broadcast, coalesce, lit}
 
 
 /*
@@ -10,7 +10,6 @@ import org.apache.spark.sql.functions.{broadcast, lit}
   In join condition when added && with equality option there may be a mismatch of data types,
     to avoid that inferSchema is not enabled nor any custom schema enabled
   There will still be 1 BroadcastNestedLoopJoin BuildRight, Cross as we are performing cross JOIN
-  Last solution is a better option since csv are not schema embedded, dummy df is created with "0" to avoid data types issue
  */
 object BroadcastNestedLoopJoin extends App {
 
@@ -95,7 +94,7 @@ object BroadcastNestedLoopJoin extends App {
     *(1) Project [SalaryDataID#17, CalendarYear#18, EmployeeName#19, Department#20, JobTitle#21, salary#22, (cast(salary#22 as double) * 0.0) AS temp_clm#87, cast(null as string) AS min_salary#46, cast(null as string) AS max_salary#47, cast(null as string) AS final#48, cast(null as double) AS temp_clm#82, cast(null as string) AS bonus_amt#117]
       +- FileScan csv [SalaryDataID#17,CalendarYear#18,EmployeeName#19,Department#20,JobTitle#21,salary#22] Batched: false, DataFilters: [], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/Users/mac/IdeaProjects/Spark-Scala-Examples/resources/employee-1..., PartitionFilters: [], PushedFilters: [], ReadSchema: struct<SalaryDataID:string,CalendarYear:string,EmployeeName:string,Department:string,JobTitle:str...
   */
-  
+
 
   private val dummy_df = Seq(("0")).toDF("temp_clm")
   private val bonus_df_2 = bonus_df.crossJoin(broadcast(dummy_df))
@@ -113,10 +112,10 @@ object BroadcastNestedLoopJoin extends App {
       .alias("emp").join(broadcast(bonus_df_2).alias("bon"),
       $"$col_name".between($"bon.min_salary", $"bon.max_salary") && ($"emp.temp_clm" == $"bon.temp_clm")
       , "left")
-      .withColumnRenamed(col_name, col_name + "_rounded")
+      .withColumn(col_name + "_rounded", $"bon.final")
   }
 
-  final_df.show(false)
+  final_df.explain()
 /*
   final_df.explain()
   == Physical Plan ==
