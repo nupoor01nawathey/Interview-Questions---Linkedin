@@ -3,6 +3,19 @@ package main
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.{broadcast, coalesce, lit}
 
+/*
+  In a Broadcast Nested Loop Join, a small DataFrame is broadcasted to all worker nodes, just like in a Broadcast Hash Join. 
+  However, instead of using a hash-based join, a nested loop join is performed. Each row in the larger DataFrame is compared to each row 
+  in the smaller DataFrame to find matching keys.
+  
+  Hash Join Algorithm
+  A Hash Table is built on the smaller table of the join. The Join Column value is used as the key in the Hash Table
+  For every row in the other data partitions, the Join Column value is used to query the Hash Table built in (1). 
+  When Hash Table returns some value, then there is a match.
+
+  https://towardsdatascience.com/strategies-of-spark-join-c0e7b4572bcf
+*/
+
 
 /*
   Below example is only for demo purpose.
