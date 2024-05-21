@@ -1,0 +1,26 @@
+#
+# Approach:
+# Iterate over given list
+# Check for every incoming number if target - num exists in hash map
+# If don't exist then add that number as Key and index as Value in hash map
+# If the differ is found it is guranteed that 2nd index already exists 
+#
+
+
+def two_sum(nums, target):
+    prevoious_hashmap = {} # val: index
+    for i,n in enumerate(nums):
+        differ = target - n
+        if differ in prevoious_hashmap:
+            return([prevoious_hashmap[differ], i])
+        prevoious_hashmap[n] = i
+
+print(two_sum([2,7,11,15], 9))
+print(two_sum([-2,1,5,2], 0))
+print(two_sum([-2,1,5,-2], 0))
+
+# 
+# Searching a Key in Dictionary takes O(1) time
+# Time complexity O(N) -> Iterating over list
+# Space complexity 0(N) -> Extra space for Hash Map
+#
