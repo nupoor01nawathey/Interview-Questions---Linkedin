@@ -1,0 +1,15 @@
+case class temp_data(day: Int, month: Int, precipitation: Double)
+
+val source = scala.io.Source.fromFile(“/path/to/file.csv”) // OR spark.sparkContext.textFile("/path/to/file.csv).map(line and so on )
+val lines = source.getLines().drop(1)
+
+val data = lines.map{ line =>
+	val p = lines.split(“,”)
+	temp_data( p(0).toInt, p(1).toInt(),p(2).toDouble )
+}.toArray
+
+source.close()
+
+data.take(5). foreach(println)
+
+
