@@ -31,6 +31,31 @@ data_c.foreach{ r =>
 
 
 
+/*
+    ***** When null added with valid Int the result is null
+    ***** To avoid this can convert null to 0 based on req as null may be treated as differently than 0 in downstream systems *****
+*/
+
+val df = Seq((Some(1),Some(1)),(Some(1),None),(None,Some(1))).toDF("id1", "id2")
+// df.show(false)
+// +----+----+
+// |id1 |id2 |
+// +----+----+
+// |1   |1   |
+// |1   |null|
+// |null|1   |
+// +----+----+
+
+df.withColumn("addi", $"id1" + $"id2").show(false)
+// +----+----+----+
+// |id1 |id2 |addi|
+// +----+----+----+
+// |1   |1   |2   |
+// |1   |null|null|
+// |null|1   |null|
+// +----+----+----+
+
+
 
 def fib(n:Int):Int = if(n < 2) 1 else fib(n-1)+fib(n-2)
 
