@@ -4,6 +4,34 @@
     Replace foldLeft with <your_lis>.par.aggregate()
  */
 
+
+val data_df = spark.read.format("csv").option("header","true").load("/Users/mac/IdeaProjects/Spark-Scala-Examples/resources/employee-1.csv")
+
+// data_df.show(false)
+// +------------+------------+------------+----------+------------+------+-------+-------+
+// |SalaryDataID|CalendarYear|EmployeeName|Department|JobTitle    |salary|salary1|salary2|
+// +------------+------------+------------+----------+------------+------+-------+-------+
+// |1           |1990        |Tom         |IT        |Admin       |100   |100    |10     |
+// |2           |1991        |Jerry       |Admin     |Sr Admin    |200   |200    |200    |
+// |3           |1992        |John        |HR        |Assistant HR|300   |300    |300    |
+// |4           |1993        |Eric        |Security  |Intern      |0     |0      |400    |
+// +------------+------------+------------+----------+------------+------+-------+-------+
+
+val data_c = data_df.collect.par
+data_c.foreach{ r =>
+    println(r.getAs[String]("EmployeeName"))
+
+    // Best N logic goes here.. ref g Drive
+}
+
+// John
+// Jerry
+// Tom
+// Eric
+
+
+
+
 def fib(n:Int):Int = if(n < 2) 1 else fib(n-1)+fib(n-2)
 
 for(i <- 30 to 15 by -1) { println(fib(i)) }
