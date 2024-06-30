@@ -22,7 +22,7 @@ import org.apache.spark.sql.functions.{broadcast, coalesce, lit}
   CSV files don't have schema, all fields will have String type
   In join condition when added && with equality option there may be a mismatch of data types,
     to avoid that inferSchema is not enabled nor any custom schema enabled
-  Unable to see Broadcast Hash Join and CrossJoin in the query plan.. some issue on local m/c ?!?
+  Unable to see Broadcast Hash Join in the query plan.. some issue on local m/c ?!?
 
   https://medium.com/analytics-vidhya/how-to-avoid-broadcastnestedjoin-in-spark-372d20b8e82d
 
