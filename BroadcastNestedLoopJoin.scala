@@ -22,7 +22,7 @@ import org.apache.spark.sql.functions.{broadcast, coalesce, lit}
   CSV files don't have schema, all fields will have String type
   In join condition when added && with equality option there may be a mismatch of data types,
     to avoid that inferSchema is not enabled nor any custom schema enabled
-  There will still be 1 BroadcastNestedLoopJoin BuildRight, Cross as we are performing cross JOIN
+  Unable to see Broadcast Hash Join and CrossJoin in the query plan.. some issue on local m/c ?!?
 
   https://medium.com/analytics-vidhya/how-to-avoid-broadcastnestedjoin-in-spark-372d20b8e82d
 
@@ -35,6 +35,7 @@ object BroadcastNestedLoopJoin extends App {
     .appName("BroadcastNestedLoopJoin")
     .master("local")
     .config("spark.sql.autoBroadcastJoinThreshold", -1)
+    .config("spark.sql.crossJoin.enabled", "true") // Spark 2.0 required, Spark3.0 is default enabled CrossJoin
     .getOrCreate()
 
   private val emp_file_location = "/Users/mac/IdeaProjects/Spark-Scala-Examples/resources/employee-1.csv"
@@ -56,7 +57,7 @@ object BroadcastNestedLoopJoin extends App {
   private val join_condition = $"emp.salary".between($"bon.min_salary", $"bon.max_salary")
   private val emp_bonus_df =
     salary_df
-      .alias("emp").join(broadcast(bonus_df.alias("bon")), join_condition, "left")
+      .alias("emp").join(bonus_df.alias("bon"), join_condition, "left")
     .select($"emp.*", $"bon.*", $"bon.final"
     ).alias("bonus_amt")
 
@@ -99,7 +100,7 @@ object BroadcastNestedLoopJoin extends App {
 
   private val join_condition_1 = ($"emp.salary".between($"bon.min_salary", $"bon.max_salary") && ($"emp.temp_clm" == $"bon.temp_clm"))
   private val emp_bonus_df_1 =
-    salary_df_1.alias("emp").join(broadcast(bonus_df_1.alias("bon")), join_condition_1, "left")
+    salary_df_1.alias("emp").join(bonus_df_1.alias("bon"), join_condition_1, "left")
     .select($"emp.*", $"bon.*", $"bon.final".alias("bonus_amt"))
 
 
@@ -114,11 +115,11 @@ object BroadcastNestedLoopJoin extends App {
 
 
   private val dummy_df = Seq(("0")).toDF("temp_clm")
-  private val bonus_df_2 = bonus_df.crossJoin(broadcast(dummy_df))
-  private val salary_df_2 = salary_df.crossJoin(broadcast(dummy_df))
+  private val bonus_df_2 = bonus_df.crossJoin(dummy_df)
+  private val salary_df_2 = salary_df.crossJoin(dummy_df)
 
   private val join_condition_2 = $"emp.salary".between($"bon.min_salary", $"bon.max_salary") && $"emp.temp_clm" == $"bon.temp_clm"
-  private val emp_bonus_df_2 = salary_df_2.alias("emp").join(broadcast(bonus_df_2.alias("bon")), join_condition_2, "left")
+  private val emp_bonus_df_2 = salary_df_2.alias("emp").join(bonus_df_2.alias("bon"), join_condition_2, "left")
     .select($"emp.*", $"bon.*", $"bon.final".alias("bonus_amt_2"))
 
 //  emp_bonus_df_2.show(false)
@@ -126,7 +127,7 @@ object BroadcastNestedLoopJoin extends App {
 
   private val final_df = List("salary1", "salary2").foldLeft(salary_df_2) {(tmp_df, col_name) =>
     tmp_df
-      .alias("emp").join(broadcast(bonus_df_2).alias("bon"),
+      .alias("emp").join(bonus_df_2.alias("bon"),
       $"$col_name".between($"bon.min_salary", $"bon.max_salary") && ($"emp.temp_clm" == $"bon.temp_clm")
       , "left")
       .withColumn(col_name + "_rounded", $"bon.final")
@@ -136,11 +137,16 @@ object BroadcastNestedLoopJoin extends App {
 /*
   final_df.explain()
   == Physical Plan ==
-    AdaptiveSparkPlan isFinalPlan=false
-    +- Project [SalaryDataID#17, CalendarYear#18, EmployeeName#19, Department#20, JobTitle#21, salary#22, salary1#23 AS salary1_rounded#363, salary2#24 AS salary2_rounded#416, temp_clm#277, cast(null as string) AS min_salary#50, cast(null as string) AS max_salary#51, cast(null as string) AS final#52, cast(null as string) AS temp_clm#336, cast(null as string) AS min_salary#377, cast(null as string) AS max_salary#378, cast(null as string) AS final#379, cast(null as string) AS temp_clm#381]
-      +- BroadcastNestedLoopJoin BuildRight, Cross
-      :- FileScan csv [SalaryDataID#17,CalendarYear#18,EmployeeName#19,Department#20,JobTitle#21,salary#22,salary1#23,salary2#24] Batched: false, DataFilters: [], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/Users/mac/IdeaProjects/Spark-Scala-Examples/resources/employee-1..., PartitionFilters: [], PushedFilters: [], ReadSchema: struct<SalaryDataID:string,CalendarYear:string,EmployeeName:string,Department:string,JobTitle:str...
-        +- BroadcastExchange IdentityBroadcastMode, [plan_id=234]
-          +- LocalTableScan [temp_clm#277]
+      *(1) Project [SalaryDataID#17, CalendarYear#18, EmployeeName#19, Department#20, JobTitle#21, salary#22, salary1#23, salary2#24,
+      temp_clm#152, cast(null as string) AS min_salary#50, cast(null as string) AS max_salary#51, cast(null as string) AS final#52,
+      cast(null as string) AS temp_clm#211, cast(null as string) AS salary1_rounded#238, cast(null as string) AS min_salary#253,
+      cast(null as string) AS max_salary#254, cast(null as string) AS final#255, cast(null as string) AS temp_clm#257,
+      cast(null as string) AS salary2_rounded#294]
+      +- CartesianProduct // Even if CartesianProduct only 1 value "0" is getting attached to each row in each df, not much impact...
+         :- FileScan csv [SalaryDataID#17,CalendarYear#18,EmployeeName#19,Department#20,JobTitle#21,salary#22,salary1#23,salary2#24] Batched: false,
+         DataFilters: [], Format: CSV,
+         Location: InMemoryFileIndex(1 paths)[file:/Users/mac/IdeaProjects/Spark-Scala-Examples/resources/employee-1..., PartitionFilters: [],
+         PushedFilters: [], ReadSchema: struct<SalaryDataID:string,CalendarYear:string,EmployeeName:string,Department:string,JobTitle:str...
+         +- LocalTableScan [temp_clm#152]
 */
 }
