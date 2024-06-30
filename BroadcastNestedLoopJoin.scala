@@ -24,6 +24,7 @@ import org.apache.spark.sql.functions.{broadcast, coalesce, lit}
     to avoid that inferSchema is not enabled nor any custom schema enabled
   There will still be 1 BroadcastNestedLoopJoin BuildRight, Cross as we are performing cross JOIN
 
+  https://medium.com/analytics-vidhya/how-to-avoid-broadcastnestedjoin-in-spark-372d20b8e82d
 
   Cartesian Product Join (a.k.a. Shuffle-and-Replication Nested Loop) join works very similar to a Broadcast Nested Loop join except the dataset is not broadcasted. 
  */
