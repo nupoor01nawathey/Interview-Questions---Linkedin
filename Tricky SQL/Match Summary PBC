@@ -1,0 +1,110 @@
+-- Question:
+-- TRICK IS WHEN YOU SELECT TEAMA WINS IT MEANS TEAMB IS LOSING SO KEEP THIS IN MIND WHILE PERFORMING UNION ALL, REST IS EASY
+-- You have a table called "matches" with the following columns:
+
+-- - TeamA
+-- - TeamB
+-- - Result
+
+-- Task: Create a complete football score table with the following columns:
+
+-- - Team_name
+-- - matches_played
+-- - won
+-- - lost
+-- - draw
+-- - points
+
+-- Points System - Won: 3 points ; Lost : 0 points ; Draw: 1 point
+
+-- Input
+-- +----+--------+--------+--------+
+-- | id | TeamA  | TeamB  | Result |
+-- +----+--------+--------+--------+
+-- |  1 | Team 1 | Team 2 | win    |
+-- |  2 | Team 1 | Team 3 | lose   |
+-- |  3 | Team 1 | Team 4 | draw   |
+-- |  4 | Team 1 | Team 5 | win    |
+-- |  5 | Team 1 | Team 6 | lose   |
+-- |  6 | Team 1 | Team 7 | win    |
+-- |  7 | Team 2 | Team 3 | draw   |
+-- |  8 | Team 2 | Team 4 | win    |
+-- |  9 | Team 2 | Team 5 | lose   |
+-- | 10 | Team 2 | Team 6 | win    |
+-- | 11 | Team 2 | Team 7 | draw   |
+-- | 12 | Team 3 | Team 4 | lose   |
+-- | 13 | Team 3 | Team 5 | win    |
+-- | 14 | Team 3 | Team 6 | draw   |
+-- | 15 | Team 3 | Team 7 | lose   |
+-- | 16 | Team 4 | Team 5 | win    |
+-- | 17 | Team 4 | Team 6 | lose   |
+-- | 18 | Team 4 | Team 7 | draw   |
+-- | 19 | Team 5 | Team 6 | win    |
+-- | 20 | Team 5 | Team 7 | lose   |
+-- | 21 | Team 6 | Team 7 | win    |
+-- | 22 | Team 7 | Team 1 | lose   |
+-- | 23 | Team 6 | Team 2 | draw   |
+-- | 24 | Team 5 | Team 3 | win    |
+-- | 25 | Team 4 | Team 1 | draw   |
+-- +----+--------+--------+--------+
+
+-- Output
+-- +--------+---------------+------+-------+-------+--------------+
+-- | team   | total_matches | wins | loses | draws | total_points |
+-- +--------+---------------+------+-------+-------+--------------+
+-- | Team 1 |             8 |    4 |     2 |     2 |           14 |
+-- | Team 6 |             7 |    3 |     2 |     2 |           11 |
+-- | Team 2 |             7 |    2 |     2 |     3 |            9 |
+-- | Team 4 |             7 |    2 |     2 |     3 |            9 |
+-- | Team 5 |             7 |    3 |     4 |     0 |            9 |
+-- | Team 3 |             7 |    2 |     3 |     2 |            8 |
+-- | Team 7 |             7 |    2 |     3 |     2 |            8 |
+-- +--------+---------------+------+-------+-------+--------------+
+
+
+CREATE TABLE Matches (
+   id INT AUTO_INCREMENT PRIMARY KEY,
+   TeamA VARCHAR(50),
+   TeamB VARCHAR(50),
+   Result VARCHAR(10)
+ );
+ 
+INSERT INTO Matches (TeamA, TeamB, Result) VALUES
+ ('Team 1', 'Team 2', 'win'),('Team 1', 'Team 3', 'lose'),('Team 1', 'Team 4', 'draw'),('Team 1', 'Team 5', 'win'),('Team 1', 'Team 6', 'lose'),('Team 1', 'Team 7', 'win'),('Team 2', 'Team 3', 'draw'),('Team 2', 'Team 4', 'win'),('Team 2', 'Team 5', 'lose'),
+('Team 2', 'Team 6', 'win'),('Team 2', 'Team 7', 'draw'),('Team 3', 'Team 4', 'lose'),
+('Team 3', 'Team 5', 'win'),('Team 3', 'Team 6', 'draw'),('Team 3', 'Team 7', 'lose'),
+('Team 4', 'Team 5', 'win'),('Team 4', 'Team 6', 'lose'),('Team 4', 'Team 7', 'draw'),
+('Team 5', 'Team 6', 'win'),('Team 5', 'Team 7', 'lose'),('Team 6', 'Team 7', 'win'),
+('Team 7', 'Team 1', 'lose'),('Team 6', 'Team 2', 'draw'),('Team 5', 'Team 3', 'win'),
+('Team 4', 'Team 1', 'draw');
+
+
+select * from matches;
+
+with match_details as (
+select
+  TeamA as team,
+  case when Result='win' then 1 else 0 end wins,
+  case when Result='lose' then 1 else 0 end loses,
+  case when Result='draw' then 1 else 0 end draws,
+  1 as matches_played
+from matches 
+UNION ALL
+select
+  TeamB as team,
+  case when Result='lose' then 1 else 0 end wins,
+  case when Result='win' then 1 else 0 end loses,
+  case when Result='draw' then 1 else 0 end draws,
+  1 as matches_played
+from matches 
+)
+select
+  team,
+  sum(matches_played) as total_matches,
+  sum(wins) as wins,
+  sum(loses) as loses,
+  sum(draws) as draws,
+  sum(wins) * 3 + sum(draws) * 1 as total_points
+from match_details 
+group by team
+order by total_points desc, team asc;
