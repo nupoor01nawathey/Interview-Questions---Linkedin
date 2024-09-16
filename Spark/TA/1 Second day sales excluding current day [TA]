@@ -1,0 +1,70 @@
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+
+val data = Seq(
+  Row("TV", "2016-11-27", 800),
+  Row("TV", "2016-11-30", 900),
+  Row("TV", "2016-12-29", 500),
+  Row("TV", "2017-01-20", 400),
+  Row("FRIDGE", "2016-10-11", 760),
+  Row("FRIDGE", "2016-10-13", 400)
+)
+
+val schema = StructType(List(
+  StructField("product", StringType, nullable=false),
+  StructField("sale_date", StringType, nullable=false),
+  StructField("amount", IntegerType, nullable=false)
+))
+
+val rdd = spark.sparkContext.parallelize(data)
+val data_df = spark.createDataFrame(rdd, schema)
+
+data_df.show(false)
+
+/*
+data_df:org.apache.spark.sql.DataFrame
+product:string
+sale_date:string
+amount:integer
++-------+----------+------+
+|product|sale_date |amount|
++-------+----------+------+
+|TV     |2016-11-27|800   |
+|TV     |2016-11-30|900   |
+|TV     |2016-12-29|500   |
+|TV     |2017-01-20|400   |
+|FRIDGE |2016-10-11|760   |
+|FRIDGE |2016-10-13|400   |
++-------+----------+------+
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+data: Seq[org.apache.spark.sql.Row] = List([TV,2016-11-27,800], [TV,2016-11-30,900], [TV,2016-12-29,500], [TV,2017-01-20,400], [FRIDGE,2016-10-11,760], [FRIDGE,2016-10-13,400])
+schema: org.apache.spark.sql.types.StructType = StructType(StructField(product,StringType,false),StructField(sale_date,StringType,false),StructField(amount,IntegerType,false))
+rdd: org.apache.spark.rdd.RDD[org.apache.spark.sql.Row] = ParallelCollectionRDD[3] at parallelize at command-77897322106234:19
+data_df: org.apache.spark.sql.DataFrame = [product: string, sale_date: string ... 1 more field]
+*/
+
+
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.{lead, lag}
+
+data_df.withColumn("next_2nd_day_sales", lead($"amount", 2).over(Window.partitionBy($"product").orderBy($"sale_date"))
+      ).withColumn("prev_2nd_day_sales", lag($"amount", 2).over(Window.partitionBy($"product").orderBy($"sale_date"))
+      ).show(false)
+
+/*
++-------+----------+------+------------------+------------------+
+|product|sale_date |amount|next_2nd_day_sales|prev_2nd_day_sales|
++-------+----------+------+------------------+------------------+
+|FRIDGE |2016-10-11|760   |NULL              |NULL              |
+|FRIDGE |2016-10-13|400   |NULL              |NULL              |
+|TV     |2016-11-27|800   |500               |NULL              |
+|TV     |2016-11-30|900   |400               |NULL              |
+|TV     |2016-12-29|500   |NULL              |800               |
+|TV     |2017-01-20|400   |NULL              |900               |
++-------+----------+------+------------------+------------------+
+
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.{lead, lag}
+*/
