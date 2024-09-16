@@ -1,0 +1,37 @@
+/*
+INPUT
++------------------------------------+------------------------------------------+
+|uniqueid                            |status_value                              |
++------------------------------------+------------------------------------------+
+|20d75c97-5fee-11e8-92c7-67fe1c388607|[A:X:M, B:Y:N, C:Z:O, D:W:P, E:V:Q, A:W:P]|
+|20d75c98-5fee-11e8-92c7-5f0316c1a74f|[A:X:M, B:W:N, C:L:O]                     |
+|20d75c99-5fee-11e8-92c7-d9bfa897a151|[A:X:M, F:Y:N, H:Z:O, A:W:P]              |
++------------------------------------+------------------------------------------+
+
+OUTPUT
++------------------------------------+----------------------------+
+|uniqueid                            |status_value                |
++------------------------------------+----------------------------+
+|20d75c97-5fee-11e8-92c7-67fe1c388607|[A:X:M, B:Y:N, C:Z:O, A:W:P]|
+|20d75c98-5fee-11e8-92c7-5f0316c1a74f|[A:X:M, B:W:N, C:L:O]       |
+|20d75c99-5fee-11e8-92c7-d9bfa897a151|[A:X:M, A:W:P]              |
++------------------------------------+----------------------------+
+*/
+
+
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.expressions._
+
+val data_df = Seq(
+  ("20d75c97-5fee-11e8-92c7-67fe1c388607", Array("A:X:M", "B:Y:N", "C:Z:O", "D:W:P", "E:V:Q", "A:W:P")),
+  ("20d75c98-5fee-11e8-92c7-5f0316c1a74f", Array("A:X:M", "B:W:N", "C:L:O")),
+  ("20d75c99-5fee-11e8-92c7-d9bfa897a151", Array("A:X:M", "F:Y:N", "H:Z:O", "A:W:P"))
+).toDF("uniqueid", "status_value")
+
+data_df.show(false)
+
+data_df.withColumn("exploded", explode($"status_value")
+  ).withColumn("splitted", split($"exploded", ":")
+  ).filter($"splitted".getItem(0).isin("A", "B", "C")
+  ).groupBy("uniqueid").agg(collect_list($"exploded").alias("status_value")).show(false)
