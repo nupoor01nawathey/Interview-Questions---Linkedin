@@ -1,0 +1,59 @@
+/*
+INPUT
++-------+----------+------+
+|product|sale_date |amount|
++-------+----------+------+
+|TV     |2016-11-27|800   |
+|TV     |2016-11-20|1000  |
+|TV     |2016-11-28|900   |
+|TV     |2016-11-30|900   |
+|TV     |2016-11-29|500   |
+|FRIDGE |2016-11-27|760   |
+|FRIDGE |2016-11-26|850   |
+|FRIDGE |2016-11-28|850   |
+|FRIDGE |2016-11-20|900   |
++-------+----------+------+
+
+
+OUTPUT
++-------+----------+------+
+|product|sale_date |amount|
++-------+----------+------+
+|FRIDGE |2016-11-26|850   |
+|TV     |2016-11-28|900   |
++-------+----------+------+
+*/
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+
+val data = Seq(
+  Row("TV", "2016-11-27", 800),
+  Row("TV", "2016-11-20", 1000),
+  Row("TV", "2016-11-28", 900),
+  Row("TV", "2016-11-30", 900),
+  Row("TV", "2016-11-29", 500),
+  Row("FRIDGE", "2016-11-27", 760),
+  Row("FRIDGE", "2016-11-26", 850),
+  Row("FRIDGE", "2016-11-28", 850),
+  Row("FRIDGE", "2016-11-20", 900)
+)
+
+val schema = StructType(List(
+  StructField("product", StringType, false),
+  StructField("sale_date", StringType, false),
+  StructField("amount", IntegerType, true)
+))
+
+val rdd = spark.sparkContext.parallelize(data)
+val data_df = spark.createDataFrame(rdd, schema)
+
+data_df.show(false)
+
+
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.dense_rank
+
+data_df.withColumn("dr", dense_rank().over(Window.partitionBy($"product").orderBy($"sale_date".desc))
+).filter($"dr" === 3).drop("dr").show(false)
+
