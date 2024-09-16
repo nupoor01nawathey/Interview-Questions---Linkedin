@@ -1,0 +1,87 @@
+// Assume you have an events table on app analytics. Write a SQL query to get the app’s click-through rate (CTR %) in 2022. Output the results in percentages rounded to 2 decimal places.
+
+// Notes:
+// Percentage of click-through rate = 100.0 * Number of clicks / Number of impressions
+// To avoid integer division, you should multiply the click-through rate by 100.0, not 100.
+
+// events 
+// Table:
+// Column Name Type
+// app_id integer
+// event_type string
+// timestamp datetime
+
+// Example Input:
+// app_id event_type timestamp
+// 123 impression 07/18/2022 11:36:12
+// 123 impression 07/18/2022 11:37:12
+// 123 click 07/18/2022 11:37:42
+// 234 impression 07/18/2022 14:15:12
+// 234 click 07/18/2022 14:16:12
+
+// Example Output:
+// app_id ctr
+// 123 50.00
+// 234 100.00
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+
+val data = Seq(
+  Row(123, "impression", "07/18/2022 11:36:12"),
+  Row(123, "impression", "07/18/2022 11:37:12"),
+  Row(123, "click", "07/18/2022 11:37:42"),
+  Row(234, "impression", "07/18/2022 14:15:12"),
+  Row(234, "click", "07/18/2022 14:16:12")
+)
+
+val schema = StructType(List(
+  StructField("app_id", IntegerType, false),
+  StructField("event_type", StringType, false),
+  StructField("timestamp", StringType, false)
+))
+
+val rdd = spark.sparkContext.parallelize(data)
+val data_df = spark.createDataFrame(rdd, schema)
+
+data_df.show(false)
+
+
+/*
+data_df:org.apache.spark.sql.DataFrame
+app_id:integer
+event_type:string
+timestamp:string
++------+----------+-------------------+
+|app_id|event_type|timestamp          |
++------+----------+-------------------+
+|123   |impression|07/18/2022 11:36:12|
+|123   |impression|07/18/2022 11:37:12|
+|123   |click     |07/18/2022 11:37:42|
+|234   |impression|07/18/2022 14:15:12|
+|234   |click     |07/18/2022 14:16:12|
++------+----------+-------------------+
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+data: Seq[org.apache.spark.sql.Row] = List([123,impression,07/18/2022 11:36:12], [123,impression,07/18/2022 11:37:12], [123,click,07/18/2022 11:37:42], [234,impression,07/18/2022 14:15:12], [234,click,07/18/2022 14:16:12])
+schema: org.apache.spark.sql.types.StructType = StructType(StructField(app_id,IntegerType,false),StructField(event_type,StringType,false),StructField(timestamp,StringType,false))
+rdd: org.apache.spark.rdd.RDD[org.apache.spark.sql.Row] = ParallelCollectionRDD[65] at parallelize at command-4027631926912837:44
+data_df: org.apache.spark.sql.DataFrame = [app_id: int, event_type: string ... 1 more field]
+*/
+
+
+import org.apache.spark.sql.functions._
+
+data_df.groupBy(col("app_id")
+).agg(sum(when(col("event_type")==="impression",1.0).otherwise(0.0)).alias("impression"), sum(when(col("event_type")==="click",1.0).otherwise(0.0)).alias("click")).withColumn("ctr", ($"click" * 100.0/$"impression")
+).show(false)
+
+/*
++------+----------+-----+-----+
+|app_id|impression|click|ctr  |
++------+----------+-----+-----+
+|123   |2.0       |1.0  |50.0 |
+|234   |1.0       |1.0  |100.0|
++------+----------+-----+-----+
+*/
