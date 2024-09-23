@@ -60,6 +60,8 @@ SELECT * FROM CTE ORDER BY n, num_counter ;
 
 
 -- RECURSIVE CTE + CROSS JOIN
+-- If used only cross join it wont work as original table has 6 rows and max(n) is 9 so for 9's output 
+-- we will see 1,2,3,4,5,9 only which is not correct
 WITH recursive CTE1 AS (
   SELECT max(n) AS n FROM numbers
   UNION ALL
