@@ -1,0 +1,65 @@
+
+val data_df = Seq(
+  (1, 4),
+  (2, 5),
+  (3, 6)
+).toDF("col1", "col2")
+
+data_df.show(false)
+
+/*
+  +----+----+
+  |col1|col2|
+  +----+----+
+  |1   |4   |
+  |2   |5   |
+  |3   |6   |
+  +----+----+
+*/
+
+
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+
+// array_repeat("val to repeat", "to repeat by N")
+// since entire row has to be copied N times we need to use struct and select head, and remaning cols as tail
+// use the function array_repeat as usual
+data_df.withColumn("col_", array_repeat(struct(data_df.columns.head, data_df.columns.tail: _*), 2)).show(false)
+/*
+  +----+----+----------------+
+  |col1|col2|col_            |
+  +----+----+----------------+
+  |1   |4   |[{1, 4}, {1, 4}]|
+  |2   |5   |[{2, 5}, {2, 5}]|
+  |3   |6   |[{3, 6}, {3, 6}]|
+  +----+----+----------------+
+*/
+
+
+
+// can drop unwanted col col_arr after use
+// kept here for demo purpose
+val n = 5
+data_df.withColumn("col_arr", explode(array_repeat(struct(data_df.columns.head, data_df.columns.tail: _*), n))
+).show(false)
+/*
+  +----+----+-------+
+  |col1|col2|col_arr|
+  +----+----+-------+
+  |1   |4   |{1, 4} |
+  |1   |4   |{1, 4} |
+  |1   |4   |{1, 4} |
+  |1   |4   |{1, 4} |
+  |1   |4   |{1, 4} |
+  |2   |5   |{2, 5} |
+  |2   |5   |{2, 5} |
+  |2   |5   |{2, 5} |
+  |2   |5   |{2, 5} |
+  |2   |5   |{2, 5} |
+  |3   |6   |{3, 6} |
+  |3   |6   |{3, 6} |
+  |3   |6   |{3, 6} |
+  |3   |6   |{3, 6} |
+  |3   |6   |{3, 6} |
+  +----+----+-------+
+*/
