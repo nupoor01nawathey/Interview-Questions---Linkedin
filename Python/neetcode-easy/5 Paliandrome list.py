@@ -10,7 +10,7 @@ def is_paliandrome(lst):
     nums = []
 
     l, r = 0, len(lst)-1
-    while l <= 0:
+    while l <= r:
         if lst[l] != lst[r]:
             return False
         l = l+1
