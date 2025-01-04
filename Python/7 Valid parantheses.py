@@ -19,23 +19,29 @@
 # Input: s = "(]"
 # Output: false
 
-
 def is_valid_parantheses(s):
-  close_to_open_map={
-    ")": "(",
-    "}": "{",
-    "]": "[",
+  close_to_open_mapping = {
+    "}": "{" ,
+    ")": "(" ,
+    "]": "["
   }
-  stack=[]
+  stack = []
+
+ # Store all opening brackets in stack
+ # Keep all closing to opening brackets mapping in a hashmap
+ # Iterate over the string of brackets, check if stack[-1] is available in mapping[c], if found remove
+ # In the end check empty stack
+ 
   for char in s:
-    if char in close_to_open_map:
-      if stack:
-        top_element = stack.pop() 
-      if close_to_open_map[char] != top_element:
+    if char in close_to_open_mapping:
+      if stack and stack[-1] == close_to_open_mapping[char]:
+        stack.pop()
+      else:
         return False
     else:
       stack.append(char)
-  return not stack
+  return True if not stack else False
+
 
 print(is_valid_parantheses("()"))
 print(is_valid_parantheses("()[]{}"))
