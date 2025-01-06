@@ -80,7 +80,7 @@ def is_paliandrome(s):
     while l < r and not is_alphanumeric(s[l]):
       l+=1
     while r > l and not is_alphanumeric(s[r]):
-      r+=1
+      r-=1
     if s[l].lower() != s[r].lower():
       return False
     l, r = l+1, r-1
