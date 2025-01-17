@@ -1,0 +1,119 @@
+/*
+569. Median Employee Salary
+The Employee table holds all employees. The employee table has three columns: Employee Id, Company Name, and Salary.
+
++-----+------------+--------+
+|Id   | Company    | Salary |
++-----+------------+--------+
+|1    | A          | 2341   |
+|2    | A          | 341    |
+|3    | A          | 15     |
+|4    | A          | 15314  |
+|5    | A          | 451    |
+|6    | A          | 513    |
+|7    | B          | 15     |
+|8    | B          | 13     |
+|9    | B          | 1154   |
+|10   | B          | 1345   |
+|11   | B          | 1221   |
+|12   | B          | 234    |
+|13   | C          | 2345   |
+|14   | C          | 2645   |
+|15   | C          | 2645   |
+|16   | C          | 2652   |
+|17   | C          | 65     |
++-----+------------+--------+
+Write a SQL query to find the median salary of each company. Bonus points if you can solve it without using any built-in SQL functions.
+
++-----+------------+--------+
+|Id   | Company    | Salary |
++-----+------------+--------+
+|5    | A          | 451    |
+|6    | A          | 513    |
+|12   | B          | 234    |
+|9    | B          | 1154   |
+|14   | C          | 2645   |
++-----+------------+--------+
+*/
+
+
+create table employees (
+  id int,
+  company char(1),
+  salary int
+);
+
+insert into employees values 
+(1,'A',2341),  
+(2,'A',341),
+(3,'A',15), 
+(4,'A',15314), 
+(5,'A',451),
+(6,'A',513), 
+(7,'B',15), 
+(8,'B',13),  
+(9,'B',1154),  
+(10,'B',1345), 
+(11,'B',1221),
+(12,'B',234),
+(13,'C',2345), 
+(14,'C',2645),
+(15,'C',2645),
+(16,'C',2652),
+(17,'C',65) ;
+
+select * from employees;
+
+with cte as (
+select
+  *,
+  row_number() over(partition by company order by salary) rnk,
+  count(id) over(partition by company) cnt
+from employees
+)
+select
+  id, company, salary
+from cte
+where rnk between cnt/2 and (cnt/2)+1 
+;
+
+
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.row_number
+
+val data = Seq(
+  Row(1,"A",2341),  
+  Row(2,"A",341),
+  Row(3,"A",15), 
+  Row(4,"A",15314), 
+  Row(5,"A",451),
+  Row(6,"A",513), 
+  Row(7,"B",15), 
+  Row(8,"B",13),  
+  Row(9,"B",1154),  
+  Row(10,"B",1345), 
+  Row(11,"B",1221),
+  Row(12,"B",234),
+  Row(13,"C",2345), 
+  Row(14,"C",2645),
+  Row(15,"C",2645),
+  Row(16,"C",2652),
+  Row(17,"C",65) 
+)
+
+val schema = StructType(Array(
+  StructField("id", IntegerType),
+  StructField("company", StringType),
+  StructField("salary", IntegerType)
+))
+
+val rdd = spark.sparkContext.parallelize(data)
+val df = spark.createDataFrame(rdd, schema)
+
+df.withColumn("rn", row_number().over(Window.partitionBy($"company").orderBy($"salary"))
+).withColumn("cnt", count($"id").over(Window.partitionBy($"company"))
+).filter($"rn" >= $"cnt"/2 && $"rn" <= ($"cnt"/2) + 1).show(false)
+
