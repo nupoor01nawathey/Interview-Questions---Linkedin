@@ -1,0 +1,195 @@
+/*
+1479. Sales by Day of the Week
+
+Table: Orders
++---------------+---------+
+| Column Name   | Type    |
++---------------+---------+
+| order_id      | int     |
+| customer_id   | int     |
+| order_date    | date    |
+| item_id       | varchar |
+| quantity      | int     |
++---------------+---------+
+(ordered_id, item_id) is the primary key for this table.
+This table contains information of the orders placed.
+order_date is the date when item_id was ordered by the customer with id customer_id.
+ 
+
+Table: Items
++---------------------+---------+
+| Column Name         | Type    |
++---------------------+---------+
+| item_id             | varchar |
+| item_name           | varchar |
+| item_category       | varchar |
++---------------------+---------+
+item_id is the primary key for this table.
+item_name is the name of the item.
+item_category is the category of the item.
+ 
+You are the business owner and would like to obtain a sales report for category items and day of the week.
+Write an SQL query to report how many units in each category have been ordered on each day of the week.
+Return the result table ordered by category.
+The query result format is in the following example:
+
+ 
+Orders table:
++------------+--------------+-------------+--------------+-------------+
+| order_id   | customer_id  | order_date  | item_id      | quantity    |
++------------+--------------+-------------+--------------+-------------+
+| 1          | 1            | 2020-06-01  | 1            | 10          |
+| 2          | 1            | 2020-06-08  | 2            | 10          |
+| 3          | 2            | 2020-06-02  | 1            | 5           |
+| 4          | 3            | 2020-06-03  | 3            | 5           |
+| 5          | 4            | 2020-06-04  | 4            | 1           |
+| 6          | 4            | 2020-06-05  | 5            | 5           |
+| 7          | 5            | 2020-06-05  | 1            | 10          |
+| 8          | 5            | 2020-06-14  | 4            | 5           |
+| 9          | 5            | 2020-06-21  | 3            | 5           |
++------------+--------------+-------------+--------------+-------------+
+
+Items table:
++------------+----------------+---------------+
+| item_id    | item_name      | item_category |
++------------+----------------+---------------+
+| 1          | LC Alg. Book   | Book          |
+| 2          | LC DB. Book    | Book          |
+| 3          | LC SmarthPhone | Phone         |
+| 4          | LC Phone 2020  | Phone         |
+| 5          | LC SmartGlass  | Glasses       |
+| 6          | LC T-Shirt XL  | T-Shirt       |
++------------+----------------+---------------+
+
+Result table:
++------------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+| Category   | Monday    | Tuesday   | Wednesday | Thursday  | Friday    | Saturday  | Sunday    |
++------------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+| Book       | 20        | 5         | 0         | 0         | 10        | 0         | 0         |
+| Glasses    | 0         | 0         | 0         | 0         | 5         | 0         | 0         |
+| Phone      | 0         | 0         | 5         | 1         | 0         | 0         | 10        |
+| T-Shirt    | 0         | 0         | 0         | 0         | 0         | 0         | 0         |
++------------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+On Monday (2020-06-01, 2020-06-08) were sold a total of 20 units (10 + 10) in the category Book (ids: 1, 2).
+On Tuesday (2020-06-02) were sold a total of 5 units  in the category Book (ids: 1, 2).
+On Wednesday (2020-06-03) were sold a total of 5 units in the category Phone (ids: 3, 4).
+On Thursday (2020-06-04) were sold a total of 1 unit in the category Phone (ids: 3, 4).
+On Friday (2020-06-05) were sold 10 units in the category Book (ids: 1, 2) and 5 units in Glasses (ids: 5).
+On Saturday there are no items sold.
+On Sunday (2020-06-14, 2020-06-21) were sold a total of 10 units (5 +5) in the category Phone (ids: 3, 4).
+There are no sales of T-Shirt.
+*/
+
+
+create table orders (
+  order_id int,
+  customer_id int,
+  order_date date,
+  item_id int,
+  quantity int
+);
+
+create table items (
+  item_id int,
+  item_name varchar(20),
+  item_category varchar(20)
+);
+
+insert into orders values 
+(1,1,'2020-06-01',1,10),
+(2,1,'2020-06-08',2,10),
+(3,2,'2020-06-02',1,5),
+(4,3,'2020-06-03',3,5),
+(5,4,'2020-06-04',4,1),
+(6,4,'2020-06-05',5,5),
+(7,5,'2020-06-05',1,10),
+(8,5,'2020-06-14',4,5),
+(9,5,'2020-06-21',3,5)
+;
+
+insert into items values 
+(1,'LC Alg. Book','Book'), 
+(2,'LC DB. Book','Book'),
+(3,'LC SmarthPhone','Phone'),
+(4,'LC Phone 2020','Phone'),
+(5,'LC SmartGlass','Glasses'),
+(6,'LC T-Shirt XL','T-Shirt')
+;
+
+select * from orders ;
+select * from items ;
+
+select
+  i.item_category as category,
+  sum(case when dayofweek(order_date)=2 then o.quantity else 0 end) as 'Monday',
+  sum(case when dayofweek(order_date)=3 then o.quantity else 0 end) as 'Tuesday',
+  sum(case when dayofweek(order_date)=4 then o.quantity else 0 end) as 'Wednesday',
+  sum(case when dayofweek(order_date)=5 then o.quantity else 0 end) as 'Thursday',
+  sum(case when dayofweek(order_date)=6 then o.quantity else 0 end) as 'Friday',
+  sum(case when dayofweek(order_date)=7 then o.quantity else 0 end) as 'Saturday',
+  sum(case when dayofweek(order_date)=1 then o.quantity else 0 end) as 'Sunday'
+from items i left join orders o
+on i.item_id = o.item_id 
+group by i.item_category
+;
+
+
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
+
+val dataOrders = Seq(
+  Row(1,1,"2020-06-01",1,10),
+  Row(2,1,"2020-06-08",2,10),
+  Row(3,2,"2020-06-02",1,5),
+  Row(4,3,"2020-06-03",3,5),
+  Row(5,4,"2020-06-04",4,1),
+  Row(6,4,"2020-06-05",5,5),
+  Row(7,5,"2020-06-05",1,10),
+  Row(8,5,"2020-06-14",4,5),
+  Row(9,5,"2020-06-21",3,5)
+)
+
+val dataItems = Seq(
+  Row(1,"LC Alg. Book","Book"), 
+  Row(2,"LC DB. Book","Book"),
+  Row(3,"LC SmarthPhone","Phone"),
+  Row(4,"LC Phone 2020","Phone"),
+  Row(5,"LC SmartGlass","Glasses"),
+  Row(6,"LC T-Shirt XL","T-Shirt")
+)
+
+val schemaOrders = StructType(Array(
+  StructField("order_id", IntegerType),
+  StructField("customer_id", IntegerType),
+  StructField("order_date", StringType),
+  StructField("item_id", IntegerType),
+  StructField("quantity", IntegerType)
+))
+
+val schemItems = StructType(Array(
+  StructField("item_id", IntegerType),
+  StructField("item_name", StringType),
+  StructField("item_category", StringType)
+))
+
+val rddOrders = spark.sparkContext.parallelize(dataOrders)
+val dfOrders = spark.createDataFrame(rddOrders, schemaOrders)
+
+val rddItems = spark.sparkContext.parallelize(dataItems)
+val dfItems = spark.createDataFrame(rddItems, schemItems)
+
+dfItems.alias("i").join(dfOrders.alias("o"), $"i.item_id" === $"o.item_id", "left"
+).groupBy($"i.item_category").agg(
+  sum(when(date_format($"order_date", "EEEE") === "Monday", $"o.quantity").otherwise(0)).alias("Monday"),
+  sum(when(date_format($"order_date", "EEEE") === "Tuesday", $"o.quantity").otherwise(0)).alias("Tuesday"),
+  sum(when(date_format($"order_date", "EEEE") === "Wednesday", $"o.quantity").otherwise(0)).alias("Wednesday"),
+  sum(when(date_format($"order_date", "EEEE") === "Thursday", $"o.quantity").otherwise(0)).alias("Thursday"),
+  sum(when(date_format($"order_date", "EEEE") === "Friday", $"o.quantity").otherwise(0)).alias("Friday"),
+  sum(when(date_format($"order_date", "EEEE") === "Saturday", $"o.quantity").otherwise(0)).alias("Saturday"),
+  sum(when(date_format($"order_date", "EEEE") === "Sunday", $"o.quantity").otherwise(0)).alias("Sunday"),
+).show(false)
+
+
+  
