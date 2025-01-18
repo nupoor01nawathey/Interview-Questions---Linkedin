@@ -1,0 +1,132 @@
+/*
+615. Average Salary: Departments VS Company
+Given two tables as below, write a query to display the comparison result (higher/lower/same) of the average salary of employees in a department to the company's average salary.
+ 
+Table: salary
+| id | employee_id | amount | pay_date   |
+|----|-------------|--------|------------|
+| 1  | 1           | 9000   | 2017-03-31 |
+| 2  | 2           | 6000   | 2017-03-31 |
+| 3  | 3           | 10000  | 2017-03-31 |
+| 4  | 1           | 7000   | 2017-02-28 |
+| 5  | 2           | 6000   | 2017-02-28 |
+| 6  | 3           | 8000   | 2017-02-28 |
+ 
+
+The employee_id column refers to the employee_id in the following table employee.
+Table: employee
+| employee_id | department_id |
+|-------------|---------------|
+| 1           | 1             |
+| 2           | 2             |
+| 3           | 2             |
+ 
+
+So for the sample data above, the result is
+
+| pay_month | department_id | comparison  |
+|-----------|---------------|-------------|
+| 2017-03   | 1             | higher      |
+| 2017-03   | 2             | lower       |
+| 2017-02   | 1             | same        |
+| 2017-02   | 2             | same        |
+ 
+
+Explanation
+In March, the company's average salary is (9000+6000+10000)/3 = 8333.33...
+The average salary for department '1' is 9000, which is the salary of employee_id '1' since there is only one employee in this department. So the comparison result is 'higher' since 9000 > 8333.33 obviously.
+The average salary of department '2' is (6000 + 10000)/2 = 8000, which is the average of employee_id '2' and '3'. So the comparison result is 'lower' since 8000 < 8333.33.
+With he same formula for the average salary comparison in February, the result is 'same' since both the department '1' and '2' have the same average salary with the company, which is 7000.
+*/
+
+
+create table salary (
+  id int,
+  employee_id int, 
+  amount int,
+  pay_date date
+);
+
+create table employee (
+  employee_id int, 
+  department_id int
+);
+
+insert into salary values 
+(1,1,9000 , "2017-03-31"),
+(2,2,6000 , "2017-03-31"),
+(3,3,10000, "2017-03-31"),
+(4,1,7000, "2017-02-28"),
+(5,2,6000, "2017-02-28"),
+(6,3,8000, "2017-02-28")
+;
+
+insert into employee values 
+(1,1),
+(2,2),
+(3,2)
+;
+
+select * from salary ;
+select * from employee;
+
+with cte as (
+select
+  s.employee_id, s.amount, date_format(s.pay_date, '%Y-%m') as pay_month
+  ,e.department_id
+  ,avg(s.amount) over(partition by date_format(s.pay_date, '%Y-%m')) as company_avg
+  ,avg(s.amount) over(partition by e.department_id, date_format(s.pay_date, '%Y-%m')) as dept_avg
+from salary s left join employee e
+on s.employee_id=e.employee_id 
+)
+select 
+  distinct pay_month, department_id, 
+  case when dept_avg > company_avg then 'higher'
+       when dept_avg < company_avg then 'lower'
+       else 'same'
+  end as comparison
+from cte
+;
+
+
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.expressions.Window
+
+val dataSalary = Seq(
+  Row(1,1,9000 , "2017-03-31"),
+  Row(2,2,6000 , "2017-03-31"),
+  Row(3,3,10000, "2017-03-31"),
+  Row(4,1,7000, "2017-02-28"),
+  Row(5,2,6000, "2017-02-28"),
+  Row(6,3,8000, "2017-02-28")
+)
+
+val schemaSalary = StructType(Array(
+  StructField("id", IntegerType),
+  StructField("employee_id", IntegerType),
+  StructField("amount", IntegerType),
+  StructField("pay_date", StringType)
+))
+
+val rddSalary = spark.sparkContext.parallelize(dataSalary)
+val dfSalary = spark.createDataFrame(rddSalary, schemaSalary)
+
+val dfEmployee = Seq(
+  (1,1),
+  (2,2),
+  (3,2)
+).toDF("employee_id", "department_id")
+
+dfSalary.alias("s").join(dfEmployee.alias("e"), $"s.employee_id" === $"e.employee_id", "left"
+).withColumn("company_avg", avg($"s.amount").over(Window.partitionBy(date_format(to_date($"s.pay_date", "yyyy-MM-dd"),"yyyy-MM")))
+).withColumn("dept_avg", avg($"s.amount").over(Window.partitionBy($"e.department_id", date_format(to_date($"s.pay_date", "yyyy-MM-dd"), "yyyy-MM")))
+).withColumn("comparison", when($"dept_avg" > $"company_avg", "higher").when($"dept_avg" < $"company_avg", "lower").otherwise("same")
+).withColumn("pay_month", date_format(to_date($"s.pay_date", "yyyy-MM-dd"), "yyyy-MM")).dropDuplicates("pay_month", "department_id"
+).select("pay_month", "e.department_id", "comparison").show(false)
+
+
+
+
