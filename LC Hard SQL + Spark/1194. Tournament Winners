@@ -112,3 +112,49 @@ from cte2
 where dr=1 ;
 
 
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.expressions.Window
+
+val dataPlayers = Seq(
+  Row(10, 2),
+  Row(15, 1),
+  Row(20, 3),
+  Row(25, 1),
+  Row(30, 1),
+  Row(35, 2),
+  Row(40, 3),
+  Row(45, 1),
+  Row(50, 2)
+)
+
+val dataMatches = Seq(
+  Row(1, 15, 45, 3, 0),
+  Row(2, 30, 25, 1, 2),
+  Row(3, 30, 15, 2, 0),
+  Row(4, 40, 20, 5, 2),
+  Row(5, 35, 50, 1, 1) 
+)
+
+val schemaPlayers = StructType(List(
+  StructField("player_id", IntegerType),
+  StructField("group_id", IntegerType)
+))
+
+val schemaMatches = StructType(List(
+  StructField("match_id", IntegerType),
+  StructField("first_player", StringType),
+  StructField("second_player", IntegerType),
+  StructField("first_score", IntegerType),
+  StructField("second_score", IntegerType)
+))
+
+val rddPlayers = spark.sparkContext.parallelize(dataPlayers)
+val dfPlayers = spark.createDataFrame(rddPlayers, schemaPlayers)
+
+val rddMatches = spark.sparkContext.parallelize(dataMatches)
+val dfMatches = spark.createDataFrame(rddMatches, schemaMatches)
+
+
