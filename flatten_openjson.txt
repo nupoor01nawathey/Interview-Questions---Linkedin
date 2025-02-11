@@ -1,0 +1,74 @@
+Sample json:
+{
+    "date": "2024-11-30",
+    "guid": "LicenseTestcustomer",
+    "realm": "us-east2",
+    "customerId": 100,
+    "customerName": "LicenseTestcustomer",
+    "usersoftwares": [
+        {
+            "userId": 1,
+            "softwares": []
+        },
+        {
+            "userId": 2,
+            "softwares": [
+                "AdobePremierPro",
+                "DaVinciResolve"
+            ]
+        },
+        {
+            "userId": 3,
+            "softwares": [
+                "AdobePremierPro",
+                "DaVinciResolve"
+            ]
+        },
+        {
+            "userId": 4,
+            "softwares": [
+                "AdobePremierPro",
+                "DaVinciResolve"
+            ]
+        },
+        {
+            "userId": 5,
+            "softwares": []
+        },
+        {
+            "userId": 6,
+            "softwares": [
+                "AdobePremierPro"
+            ]
+        }
+    ]
+}
+
+Create staging table with one-to-one mapping + complex field.
+Use copy activity and in mapping section do one-to-one mapping for directly available fields and for nested fields 
+map userSofwares to userSofwares in staging table and checkbox "Map complex values to string", do not select any Collection reference keep it blank
+
+With above you can load nested json data in a staging table and using below can flatten it and load in the final target table. 
+
+WITH user_softwares AS (
+	SELECT 
+		[date],
+		guid,
+		realm,
+		customertId
+		,utl.userId AS userId
+		,l.software AS license
+	FROM userCustomerSoftwaresStaging 
+	OUTER APPLY OPENJSON(usersoftwares) 
+	WITH (
+		userId [varchar](4000) ,
+		softwares NVARCHAR(MAX) AS JSON
+	) AS utl
+	OUTER APPLY OPENJSON(utl.softwares)
+	WITH (
+		software NVARCHAR(50) 
+		'$'
+	) l
+)
+SELECT [date],guid,realm,customerId,userId,software FROM user_softwares ;
+
