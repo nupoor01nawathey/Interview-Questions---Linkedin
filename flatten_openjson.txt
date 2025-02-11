@@ -72,3 +72,75 @@ WITH user_softwares AS (
 )
 SELECT [date],guid,realm,customerId,userId,software FROM user_softwares ;
 
+==============================================================================================================================================
+
+{
+    "date": "2025-01-05",
+    "guid": "1001",
+    "realm": "aws.com",
+    "customerId": 101,
+    "customeruserName": "abcd",
+    "roomCategory": "DeluxSuite",
+    "rooms": [
+        {
+            "roomCount": 10,
+            "quantity": 20,
+            "roomDetails": [
+                {
+                    "userId": "ds-10010",
+                    "userName": "Any where",
+                    "email": "external.typo@gmail.net",
+                    "userLogin": null,
+                    "quantity": 1,
+                    "duration": 0
+                },
+                {
+                    "userId": "ds-10011",
+                    "userName": "Where to go",
+                    "email": "marc.ftp@yahoo.in",
+                    "userLogin": null,
+                    "quantity": 1,
+                    "duration": 0
+                }
+            ]
+        }
+    ]
+}
+
+WITH user_occupancy AS (
+	SELECT 
+		[date],
+		guid,
+		realm,
+		customertId,
+        	customeruserName,
+        	roomCategory
+		,rd.userId AS userId
+	        ,rd.userName AS userName
+        	,rd.email
+        	,rd.userLogin
+       	 	,rd.quantity
+        	,rd.duration
+		,r.rooms_roomCount
+        	,r.rooms_quantity
+	FROM userCustomerOccupancyStaging 
+	OUTER APPLY OPENJSON(rooms) 
+	WITH (
+        	rooms_roomCount int,
+        	rooms_quantity int,
+		roomDetails NVARCHAR(MAX) AS JSON
+	) r
+	OUTER APPLY OPENJSON(r.roomDetails)
+	WITH (
+		userId NVARCHAR(50),
+        	userName NVARCHAR(50),
+        	email NVARCHAR(50),
+        	userLogin NVARCHAR(50),
+        	quantity int,
+        	duration int
+	) rd
+)
+SELECT * FROM user_occupancy ;
+
+
+
